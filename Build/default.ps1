@@ -1,4 +1,4 @@
-﻿Include ".\Helpers.ps1"
+﻿Include ".\..\Helpers1.ps1"
 set-psbreakpoint -script default.ps1 -variable testAssemblies
 properties {
 	$cleanMessage = "Cleaned!"
