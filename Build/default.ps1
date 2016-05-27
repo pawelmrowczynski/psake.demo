@@ -127,7 +127,9 @@ task TestMSTest `
 		Pop-Location
 
 		#move the .trx file bak to $MSTestTestResultsDirectory
-		Move-Item -Path $MSTestTestResultsDirectory\TestResults\*.trx -Destination $MSTestTestResultsDirectory\TestResults
+		Move-Item -Path $MSTestTestResultsDirectory\TestResults\*.trx -Destination $MSTestTestResultsDirectory\MSTest.trx
+
+		Remove-Item $MSTestTestResultsDirectory\TestResults
 	}
 
 
