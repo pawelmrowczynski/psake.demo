@@ -7,7 +7,7 @@ $psakeModule = (Get-ChildItem (".\packages\psake*\tools\psake.psm1")).FullName |
 
 Import-Module $psakeModule
 
-# You can put arguments to task in multiple lines using
+# You can put arguments to task in multiple lines using.
 Invoke-psake -buildFile .\Build\default.ps1 `
 				-taskList Test `
 				-framework 4.5.2 `
