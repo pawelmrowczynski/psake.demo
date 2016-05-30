@@ -9,7 +9,7 @@ Import-Module $psakeModule
 
 # You can put arguments to task in multiple lines using.
 Invoke-psake -buildFile .\Build\default.ps1 `
-				-taskList Test `
+				-taskList Package `
 				-framework 4.5.2 `
 				-properties @{
 					"buildConfiguration" = "Debug"

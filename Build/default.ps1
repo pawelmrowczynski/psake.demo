@@ -1,4 +1,4 @@
-﻿Include ".\..\Helpers1.ps1"
+﻿Include ".\Helpers.ps1"
 properties {
 	$cleanMessage = "Cleaned!"
 	$compileMessage = "Compile done"
