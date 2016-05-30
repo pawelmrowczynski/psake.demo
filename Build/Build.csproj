@@ -49,6 +49,7 @@
     </None>
     <None Include="default.ps1" />
     <None Include="Helpers.ps1" />
+    <None Include="MSBuild\ApplicationBuild.targets" />
     <None Include="MSBuild\MSTestBuild.targets" />
     <None Include="MSBuild\NUnitBuild.targets" />
     <None Include="MSBuild\xUnitBuild.targets" />

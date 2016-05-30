@@ -11,8 +11,8 @@ properties {
 	$publishedNUnitTestsDirectory = "$temporaryOutputDirectory\_PublishedNUnitTests"
 	$publishedxUnitTestsDirectory = "$temporaryOutputDirectory\_PublishedxUnitTests"
 	$publishedMSTestTestsDirectory = "$temporaryOutputDirectory\_PublishedMSTestTests"
-
-
+	$publishedApplicationsDirectory = "$temporaryOutputDirectory\_PublishedApplications"
+	$publishedWebsitesDirectory = "$temporaryOutputDirectory\_PublishedWebsites"
 
 	$testResultsDirectory = "$outputDirectory\TestResults"
 	$NunitTestResultsDirectory = "$testResultsDirectory\NUnit"
@@ -25,6 +25,10 @@ properties {
 	$testCoverageExcludeByAttribute = "*.ExcludeFromCodeCoverage*"
 	$testCoverageExcludeByFile = "*\*Designer.cs;*\*.g.cs;*\*.g.i.cs"
 
+
+	$packagesOutputDirectory = "$outputDirectory\Packages"
+	$applicationsOutputDirectory = "$packagesOutputDirectory\Applications"
+
 	$buildConfiguration = "Release"
 	$buildPlatform = "Any CPU"
 
@@ -35,8 +39,8 @@ properties {
 	$vsTestExe = (Get-ChildItem ("C:\Program Files (x86)\Microsoft Visual Studio*\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe")).FullName | Sort-Object $_ | Select -Last 1
 	
 	$openCoverExe = (Find-PackagePath $packagesPath "OpenCover") + "\Tools\OpenCover.Console.exe"
-		$reportGeneratorExe = (Find-PackagePath $packagesPath "ReportGenerator") + "\Tools\ReportGenerator.exe"
-
+	$reportGeneratorExe = (Find-PackagePath $packagesPath "ReportGenerator") + "\Tools\ReportGenerator.exe"
+	$7ZipExe = (Find-PackagePath $packagesPath "7-Zip.CommandLine") + "\Tools\7za.exe"
 
 	}  
 
@@ -62,6 +66,8 @@ task Init -description "Initialises the build by removing previous artifacts and
 
 	Assert (Test-Path $openCoverExe) "OpenCover Console could not be found" 
 	Assert (Test-Path $reportGeneratorExe) "ReportGenerator Console could not be found"
+	Assert (Test-Path $7ZipExe) "7Zip console could not be found"
+
 
 
 	# Remove previous build results
@@ -215,4 +221,29 @@ task Test `
 	{
 		Write-Host "No coverage file found at: $testCoverageReportPath"
 	}
+	}
+
+	task Package `
+	-depends Compile, Test `
+	-description "Package applications" `
+	-requiredVariables publishedWebsitesDirectory, publishedApplicationsDirectory, applicationsOutputDirectory `
+	{
+		# Merge published websites and published applications paths
+		$applications = @(Get-ChildItem $publishedWebsitesDirectory) +@(Get-ChildItem $publishedApplicationsDirectory)
+
+		if ($applicationsapplications.Length -gt 0 -and !(Test-Path $applicationsOutputDirectory))
+		{
+			New-Item $applicationsOutputDirectory -ItemType Directory | Out-Null
+		}
+
+		foreach($application in $applications)
+		{
+			Write-Host "Packaging $($application.Name) as a zip file"
+
+			
+			$inputDirectory = "$($application.FullName)\*"
+			$archivePath = "$($applicationsOutputDirectory)\$($application.Name).zip"
+
+			Exec { & $7ZipExe a -r -mx3 $archivePath $inputDirectory }
+		}
 	}
