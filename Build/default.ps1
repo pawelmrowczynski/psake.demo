@@ -13,6 +13,7 @@ properties {
 	$publishedMSTestTestsDirectory = "$temporaryOutputDirectory\_PublishedMSTestTests"
 	$publishedApplicationsDirectory = "$temporaryOutputDirectory\_PublishedApplications"
 	$publishedWebsitesDirectory = "$temporaryOutputDirectory\_PublishedWebsites"
+	$publishedLibrariesDirectory = "$temporaryOutputDirectory\_PublishedLibraries\"
 
 	$testResultsDirectory = "$outputDirectory\TestResults"
 	$NunitTestResultsDirectory = "$testResultsDirectory\NUnit"
@@ -41,7 +42,7 @@ properties {
 	$openCoverExe = (Find-PackagePath $packagesPath "OpenCover") + "\Tools\OpenCover.Console.exe"
 	$reportGeneratorExe = (Find-PackagePath $packagesPath "ReportGenerator") + "\Tools\ReportGenerator.exe"
 	$7ZipExe = (Find-PackagePath $packagesPath "7-Zip.CommandLine") + "\Tools\7za.exe"
-
+	$nugetExe = (Find-PackagePath $packagesPath "NuGet.CommandLine" ) + "\Tools\NuGet.exe"
 	}  
 
 
@@ -67,6 +68,8 @@ task Init -description "Initialises the build by removing previous artifacts and
 	Assert (Test-Path $openCoverExe) "OpenCover Console could not be found" 
 	Assert (Test-Path $reportGeneratorExe) "ReportGenerator Console could not be found"
 	Assert (Test-Path $7ZipExe) "7Zip console could not be found"
+	Assert (Test-Path $nugetExe) "NuGet Command Line could not be found"
+
 
 
 
@@ -228,22 +231,63 @@ task Test `
 	-description "Package applications" `
 	-requiredVariables publishedWebsitesDirectory, publishedApplicationsDirectory, applicationsOutputDirectory `
 	{
-		# Merge published websites and published applications paths
-		$applications = @(Get-ChildItem $publishedWebsitesDirectory) +@(Get-ChildItem $publishedApplicationsDirectory)
+		# Merge published websites and published applications
+	$applications = @(Get-ChildItem $publishedWebsitesDirectory) + @(Get-ChildItem $publishedApplicationsDirectory)
+	
+	if ($applications.Length -gt 0 -and !(Test-Path $applicationsOutputDirectory))
+	{
+		New-Item $applicationsOutputDirectory -ItemType Directory | Out-Null
+	}
 
-		if ($applicationsapplications.Length -gt 0 -and !(Test-Path $applicationsOutputDirectory))
+	foreach($application in $applications)
+	{
+		$nuspecPath = $application.FullName + "\" + $application.Name + ".nuspec"
+
+		Write-Host "Looking for nuspec file at $nuspecPath"
+
+		if (Test-Path $nuspecPath)
 		{
-			New-Item $applicationsOutputDirectory -ItemType Directory | Out-Null
-		}
+			Write-Host "Packaging $($application.Name) as a NuGet package"
 
-		foreach($application in $applications)
+			# Load the nuspec file as XML
+			$nuspec = [xml](Get-Content -Path $nuspecPath)
+			$metadata = $nuspec.package.metadata
+
+			# Edit the metadata
+			$metadata.version = $metadata.version.Replace("[buildNumber]", $buildNumber)
+
+			if(! $isMainBranch)
+			{
+				$metadata.version = $metadata.version + "-$branchName"
+			}
+			
+			$metadata.releaseNotes = "Build Number: $buildNumber`r`nBranch Name: $branchName`r`nCommit Hash: $gitCommitHash"
+
+			# Save the nuspec file
+			$nuspec.Save((Get-Item $nuspecPath))
+
+			# package as NuGet package
+			exec { & $nugetExe pack $nuspecPath -OutputDirectory $applicationsOutputDirectory}
+		}
+		else
 		{
 			Write-Host "Packaging $($application.Name) as a zip file"
 
-			
 			$inputDirectory = "$($application.FullName)\*"
 			$archivePath = "$($applicationsOutputDirectory)\$($application.Name).zip"
 
 			Exec { & $7ZipExe a -r -mx3 $archivePath $inputDirectory }
 		}
+
+		#Moving NuGet libraries to the packages directory
+		if (Test-Path $publishedLibrariesDirectory)
+		{
+			if (!(Test-Path $librariesOutputDirectory))
+			{
+				Mkdir $librariesOutputDirectory | Out-Null
+			}
+
+			Get-ChildItem -Path $publishedLibrariesDirectory -Filter "*.nupkg" -Recurse | Move-Item -Destination $librariesOutputDirectory
+		}
+	}
 	}

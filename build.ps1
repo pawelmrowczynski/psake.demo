@@ -1,4 +1,12 @@
-﻿cls
+﻿param(
+	[Int32]$buildNumber=0,
+	[String]$branchName="localBuild",
+	[String]$gitCommitHash="unknownHash",
+	[Switch]$isMainBranch=$False)
+
+
+
+cls
 
 # '[p]sake' is the same as 'psake' but $Error is not polluted
 Remove-Module [p]sake
@@ -15,7 +23,12 @@ Invoke-psake -buildFile .\Build\default.ps1 `
 					"buildConfiguration" = "Debug"
 					"buildPlatform" = "Any CPU"
 					"testMessage" = "What am I doing"} `
-				-parameters @{"solutionFile" = "..\psake.sln"}
+				-parameters @{
+				 "solutionFile" = "..\psake.sln"
+				 "buildNumber" = $buildNumber
+				 "branchName" = $branchName
+				 "gitCommitHash" = $gitCommitHash
+				 "isMainBranch" = $isMainBranch}
 
 Write-Host "Build exit code: " $LastExitCode
 
